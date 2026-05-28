@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         DKB Postbox Downloader
 // @namespace    https://github.com/norschel/DKB-Postbox-Downloader
-// @version      1.1.0
+// @version      1.1.1
 // @description  Lädt Dokumente aus dem DKB-Postfach herunter. Konfigurierbar über ein Panel mit Quellen- und Datumsfilter.
 // @author       norschel
 // @match        https://banking.dkb.de/*
-// @grant        none
+// @grant        GM_addStyle
 // @run-at       document-end
 // ==/UserScript==
 
@@ -225,9 +225,17 @@
   `;
   styleEl.id = 'dkbdl-style';
   function ensureStyle() {
-    if (!document.getElementById('dkbdl-style')) {
-      (document.head || document.documentElement).appendChild(styleEl);
-    }
+    if (document.getElementById('dkbdl-style')) return;
+    // Prefer GM_addStyle when available – it bypasses page CSP that may block
+    // inline <style> elements (e.g. DKB sets a strict Content-Security-Policy).
+    try {
+      if (typeof GM_addStyle === 'function') {
+        const injected = GM_addStyle(styleEl.textContent);
+        if (injected && injected.setAttribute) injected.id = 'dkbdl-style';
+        return;
+      }
+    } catch (_) { /* fall through to DOM injection */ }
+    (document.head || document.documentElement).appendChild(styleEl);
   }
   ensureStyle();
 
