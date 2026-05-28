@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         DKB Postbox Downloader
 // @namespace    https://github.com/norschel/DKB-Postbox-Downloader
-// @version      1.0.0
+// @version      1.1.0
 // @description  Lädt Dokumente aus dem DKB-Postfach herunter. Konfigurierbar über ein Panel mit Quellen- und Datumsfilter.
 // @author       norschel
 // @match        https://banking.dkb.de/*
 // @grant        none
-// @run-at       document-idle
+// @run-at       document-end
 // ==/UserScript==
 
 (function () {
@@ -22,23 +22,31 @@
   const styleEl = document.createElement('style');
   styleEl.textContent = `
     #${BTN_ID} {
-      position: fixed;
-      top: 24px;
-      right: 24px;
-      z-index: 2147483646;
-      background: #2e7d32;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,.35);
-      font-family: sans-serif;
-      line-height: 1.4;
+      position: fixed !important;
+      top: 24px !important;
+      right: 24px !important;
+      z-index: 2147483647 !important;
+      background: #2e7d32 !important;
+      color: #fff !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 10px 16px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,.35) !important;
+      font-family: sans-serif !important;
+      line-height: 1.4 !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      margin: 0 !important;
+      width: auto !important;
+      height: auto !important;
+      text-transform: none !important;
+      pointer-events: auto !important;
     }
-    #${BTN_ID}:hover { background: #1b5e20; }
+    #${BTN_ID}:hover { background: #1b5e20 !important; }
 
     #${PANEL_ID} {
       position: fixed;
@@ -215,7 +223,13 @@
     }
     .dkbdl-cancel-btn:hover { background: #ffcdd2; }
   `;
-  document.head.appendChild(styleEl);
+  styleEl.id = 'dkbdl-style';
+  function ensureStyle() {
+    if (!document.getElementById('dkbdl-style')) {
+      (document.head || document.documentElement).appendChild(styleEl);
+    }
+  }
+  ensureStyle();
 
   // ---------------------------------------------------------------------------
   // Build panel DOM
@@ -904,11 +918,38 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Bootstrap
+  // Bootstrap – robust against SPA re-renders that may remove our elements
   // ---------------------------------------------------------------------------
+  function ensureUI() {
+    if (!document.body) return;
+    ensureStyle();
+    if (!document.getElementById(BTN_ID) || !document.getElementById(PANEL_ID)) {
+      // Remove any leftover stragglers before re-injecting.
+      document.getElementById(BTN_ID)?.remove();
+      document.getElementById(PANEL_ID)?.remove();
+      try {
+        injectUI();
+        console.log('[DKB] UI injected.');
+      } catch (e) {
+        console.error('[DKB] Failed to inject UI:', e);
+      }
+    }
+  }
+
+  function bootstrap() {
+    ensureUI();
+    // Re-inject if the SPA replaces body contents.
+    const observer = new MutationObserver(() => ensureUI());
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    // Safety net: periodic check in case MutationObserver misses something.
+    setInterval(ensureUI, 2000);
+  }
+
   if (document.body) {
-    injectUI();
+    bootstrap();
   } else {
-    document.addEventListener('DOMContentLoaded', injectUI);
+    document.addEventListener('DOMContentLoaded', bootstrap);
+    // Fallback if DOMContentLoaded already fired or is delayed.
+    window.addEventListener('load', bootstrap);
   }
 })();
