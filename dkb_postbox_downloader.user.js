@@ -5,6 +5,10 @@
 // @description  Lädt Dokumente aus dem DKB-Postfach herunter. Konfigurierbar über ein Panel mit Quellen- und Datumsfilter.
 // @author       norschel
 // @match        https://banking.dkb.de/*
+// @homepageURL  https://github.com/norschel/DKB-Postbox-Downloader
+// @supportURL   https://github.com/norschel/DKB-Postbox-Downloader/issues
+// @updateURL    https://raw.githubusercontent.com/norschel/DKB-Postbox-Downloader/main/dkb_postbox_downloader.user.js
+// @downloadURL  https://raw.githubusercontent.com/norschel/DKB-Postbox-Downloader/main/dkb_postbox_downloader.user.js
 // @grant        GM_addStyle
 // @run-at       document-end
 // ==/UserScript==
