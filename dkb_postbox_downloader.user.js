@@ -23,10 +23,10 @@
   styleEl.textContent = `
     #${BTN_ID} {
       position: fixed;
-      bottom: 24px;
+      top: 24px;
       right: 24px;
       z-index: 2147483646;
-      background: #1976d2;
+      background: #2e7d32;
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -38,11 +38,11 @@
       font-family: sans-serif;
       line-height: 1.4;
     }
-    #${BTN_ID}:hover { background: #1565c0; }
+    #${BTN_ID}:hover { background: #1b5e20; }
 
     #${PANEL_ID} {
       position: fixed;
-      bottom: 74px;
+      top: 70px;
       right: 24px;
       z-index: 2147483645;
       width: 360px;
