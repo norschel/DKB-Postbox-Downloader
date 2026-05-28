@@ -27,6 +27,10 @@ Lädt alle Dokumente aus dem DKB-Online-Banking (Postfach, Archiv und Legacy-Arc
 3. Konfiguriere die gewünschten Optionen im Panel:
    - **Quellen** – wähle einzelne Quellen oder alle auf einmal.
    - **Zeitraum** – optional Start- und/oder Enddatum setzen, um nur Dokumente aus einem bestimmten Zeitraum herunterzuladen.
+   - Beispiel:
+     
+     <img width="250" height="374" alt="image" src="https://github.com/user-attachments/assets/e3e0f570-d53c-4745-9273-c62ba2aa1944" />
+
 4. Klicke auf **▶ Download starten**.
 5. Dokumente werden im Standard-Download-Ordner gespeichert. Im Panel wird der Fortschritt angezeigt.
 
