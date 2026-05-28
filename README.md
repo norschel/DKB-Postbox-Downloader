@@ -12,8 +12,13 @@ Lädt alle Dokumente aus dem DKB-Online-Banking (Postfach, Archiv und Legacy-Arc
 ### Installation
 
 1. Installiere die [Tampermonkey-Erweiterung](https://www.tampermonkey.net/) für deinen Browser.
-2. Öffne das Tampermonkey-Dashboard und lege ein neues Script an.
-3. Kopiere den Inhalt von [`dkb_postbox_downloader.user.js`](dkb_postbox_downloader.user.js) in den Editor und speichere.
+2. **Wichtig (Chrome/Edge/Brave und andere Chromium-basierte Browser ab Manifest V3):** Damit Tampermonkey Userscripts überhaupt ausführen darf, müssen zwei Einstellungen aktiv sein. Ohne sie wird das Script auf der DKB-Seite stillschweigend nicht geladen (es erscheinen weder Button noch Konsolen-Logs). Details siehe [offizielle Tampermonkey-FAQ Q209](https://www.tampermonkey.net/faq.php?q=Q209#Q209).
+   - **Entwicklermodus aktivieren** unter `chrome://extensions` bzw. `edge://extensions` (Schalter „Entwicklermodus" / „Developer mode" oben rechts).
+   - **„Allow User Scripts" / „Benutzerskripte zulassen"** für die Tampermonkey-Erweiterung aktivieren: auf der Seite `chrome://extensions` bzw. `edge://extensions` bei Tampermonkey auf „Details" klicken und die Option „Allow User Scripts" einschalten.
+   - Anschließend Browser-Tab neu laden.
+3. Öffne das Tampermonkey-Dashboard und lege ein neues Script an.
+4. Kopiere den Inhalt von [`dkb_postbox_downloader.user.js`](dkb_postbox_downloader.user.js) in den Editor und speichere.
+5. Auf [banking.dkb.de](https://banking.dkb.de) prüfen: Klick auf das Tampermonkey-Symbol in der Toolbar muss das Script unter „Auf dieser Seite ausgeführt" anzeigen. Falls nicht, fehlt meist eine der Einstellungen aus Schritt 2.
 
 ### Verwendung
 
