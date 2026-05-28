@@ -4,6 +4,16 @@ Lädt alle Dokumente aus dem DKB-Online-Banking (Postfach, Archiv und Legacy-Arc
 
 ## Tampermonkey-Script (empfohlen)
 
+### Schnellinstallation (ein Klick)
+
+Tampermonkey muss bereits installiert sein. Anschließend genügt ein Klick auf den folgenden Link – Tampermonkey öffnet automatisch den Installationsdialog:
+
+[![Install with Tampermonkey](https://img.shields.io/badge/Install-Tampermonkey-00485B?logo=tampermonkey&logoColor=white)](https://raw.githubusercontent.com/norschel/DKB-Postbox-Downloader/main/dkb_postbox_downloader.user.js)
+
+Direktlink: <https://raw.githubusercontent.com/norschel/DKB-Postbox-Downloader/main/dkb_postbox_downloader.user.js>
+
+> **Automatische Updates:** Das Script enthält `@updateURL`/`@downloadURL`, die auf dieses GitHub-Repository zeigen. Tampermonkey prüft daher in regelmäßigen Abständen selbständig, ob auf `main` eine neuere Version (höhere `@version`) liegt und bietet das Update an. Manuelles Prüfen ist im Tampermonkey-Dashboard über „Auf Updates prüfen" möglich.
+
 ### Voraussetzungen
 
 - Browser mit [Tampermonkey](https://www.tampermonkey.net/) (Chrome, Firefox, Edge, …)
