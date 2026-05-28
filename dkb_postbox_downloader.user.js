@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DKB Postbox Downloader
 // @namespace    https://github.com/norschel/DKB-Postbox-Downloader
-// @version      1.1.1
+// @version      1.1.2
 // @description  Lädt Dokumente aus dem DKB-Postfach herunter. Konfigurierbar über ein Panel mit Quellen- und Datumsfilter.
 // @author       norschel
 // @match        https://banking.dkb.de/*
@@ -11,6 +11,20 @@
 
 (function () {
   'use strict';
+
+  // Very early boot marker so we can tell from the console whether the
+  // userscript is being executed at all on the current page.
+  try {
+    console.log('[DKB] userscript loaded',
+      { url: location.href, readyState: document.readyState,
+        hasGMaddStyle: typeof GM_addStyle === 'function' });
+  } catch (_) { /* noop */ }
+
+  window.addEventListener('error', (e) => {
+    if (e && e.filename && e.filename.indexOf('dkb_postbox_downloader') !== -1) {
+      console.error('[DKB] uncaught error', e.message, e.error);
+    }
+  });
 
   const BASE_URL = 'https://banking.dkb.de/api/documentstorage';
   const PANEL_ID = 'dkbdl-panel';
@@ -945,7 +959,13 @@
   }
 
   function bootstrap() {
-    ensureUI();
+    console.log('[DKB] bootstrap()',
+      { hasBody: !!document.body, readyState: document.readyState });
+    try {
+      ensureUI();
+    } catch (e) {
+      console.error('[DKB] ensureUI threw', e);
+    }
     // Re-inject if the SPA replaces body contents.
     const observer = new MutationObserver(() => ensureUI());
     observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -953,6 +973,7 @@
     setInterval(ensureUI, 2000);
   }
 
+  console.log('[DKB] script init', { hasBody: !!document.body });
   if (document.body) {
     bootstrap();
   } else {
