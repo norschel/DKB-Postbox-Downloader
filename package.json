@@ -1,0 +1,16 @@
+{
+  "name": "dkb-postbox-downloader",
+  "private": true,
+  "version": "1.2.0",
+  "description": "Tooling-Konfiguration (Linter/Formatter) für das DKB-Postbox-Downloader-Userscript.",
+  "scripts": {
+    "lint": "eslint \"*.js\"",
+    "lint:fix": "eslint --fix \"*.js\"",
+    "format": "prettier --write \"*.{js,md,json}\"",
+    "format:check": "prettier --check \"*.{js,md,json}\""
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3"
+  }
+}
