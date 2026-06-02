@@ -42,7 +42,7 @@ Direktlink: <https://raw.githubusercontent.com/norschel/DKB-Postbox-Downloader/m
    - **Optionen** –
      - *Nur neue Dokumente seit letztem Lauf*: überspringt alle Dokumente, deren ID bereits in einem früheren erfolgreichen Lauf gespeichert wurde. Der Verlauf wird lokal über `GM_setValue` (bzw. `localStorage` als Fallback) persistiert; er kann jederzeit über den Link „Verlauf zurücksetzen" gelöscht werden.
      - *Trockenlauf (Dry Run)*: listet im Log auf, was heruntergeladen würde, ohne tatsächlich Dateien zu speichern oder den Verlauf zu verändern.
-     - *Als ZIP herunterladen*: bündelt alle Dokumente eines Laufs in einer einzigen ZIP-Datei (`dkb-postbox_<Zeitstempel>.zip`). Praktisch, um die Browser-Rückfrage „mehrere Dateien zulassen" zu vermeiden.
+     - *Als ZIP herunterladen*: bündelt alle Dokumente eines Laufs in einer einzigen ZIP-Datei (`dkb-postbox_<Zeitstempel>.zip`). Praktisch, um die Browser-Rückfrage „mehrere Dateien zulassen" zu vermeiden. **Hinweis:** Der ZIP-Export ist derzeit experimentell und im Userscript per Feature-Flag (`FEATURE_ZIP_ENABLED`) deaktiviert; die Option erscheint daher nicht im Panel. Zum Aktivieren das Flag im Script auf `true` setzen.
    - **Einstellungen** – Sprache (Deutsch/English), Design (Hell/Dunkel/Automatisch nach Systempräferenz), Log-Level (`debug`/`info`/`warn`/`error`/`none`).
 4. Klicke auf **▶ Download starten**.
 5. Während des Laufs zeigt das Panel eine **Fortschrittsanzeige** (Balken + Zähler ✓/✗/⏭) sowie das Live-Log an. Über **⏸ Pause / ▶ Fortsetzen** lässt sich der Lauf pausieren, über **✕ Abbrechen** komplett beenden.

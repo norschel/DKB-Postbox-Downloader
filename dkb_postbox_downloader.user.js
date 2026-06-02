@@ -36,6 +36,11 @@
 
   const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3, none: 4 };
 
+  // Feature flags
+  // ZIP export is currently considered experimental and not stable enough to
+  // be exposed by default. Flip to `true` to re-enable the UI and behavior.
+  const FEATURE_ZIP_ENABLED = false;
+
   // ===========================================================================
   // Module: Storage (GM_* with localStorage fallback)
   // ===========================================================================
@@ -1316,10 +1321,10 @@
           <label><input type="checkbox" id="dkbdl-dry-run"> <span data-i18n="dryRun"></span></label>
         </div>
         <div class="dkbdl-help" data-i18n="dryRunHelp"></div>
-        <div class="dkbdl-check-row">
+        <div class="dkbdl-check-row" id="dkbdl-zip-mode-row">
           <label><input type="checkbox" id="dkbdl-zip-mode"> <span data-i18n="zipMode"></span></label>
         </div>
-        <div class="dkbdl-help" data-i18n="zipModeHelp"></div>
+        <div class="dkbdl-help" id="dkbdl-zip-mode-help" data-i18n="zipModeHelp"></div>
         <div class="dkbdl-state-info" id="dkbdl-state-info"></div>
         <button type="button" class="dkbdl-link-btn" id="dkbdl-reset-state" data-i18n="resetState"></button>
 
@@ -1468,8 +1473,18 @@
     dryRunCb.addEventListener('change', () => Storage.set('opt.dryRun', dryRunCb.checked));
 
     const zipCb = panel.querySelector('#dkbdl-zip-mode');
-    zipCb.checked = !!Storage.get('opt.zipMode', false);
-    zipCb.addEventListener('change', () => Storage.set('opt.zipMode', zipCb.checked));
+    if (FEATURE_ZIP_ENABLED) {
+      zipCb.checked = !!Storage.get('opt.zipMode', false);
+      zipCb.addEventListener('change', () => Storage.set('opt.zipMode', zipCb.checked));
+    } else {
+      // ZIP export is gated behind a feature flag while it stabilises.
+      zipCb.checked = false;
+      zipCb.disabled = true;
+      const zipRow = panel.querySelector('#dkbdl-zip-mode-row');
+      const zipHelp = panel.querySelector('#dkbdl-zip-mode-help');
+      if (zipRow) zipRow.style.display = 'none';
+      if (zipHelp) zipHelp.style.display = 'none';
+    }
 
     // Reset history
     panel.querySelector('#dkbdl-reset-state').addEventListener('click', () => {
@@ -1506,7 +1521,7 @@
         endDate: panel.querySelector('#dkbdl-end-date').value || '',
         onlyNew: onlyNewCb.checked,
         dryRun: dryRunCb.checked,
-        zipMode: zipCb.checked,
+        zipMode: FEATURE_ZIP_ENABLED && zipCb.checked,
         categoryFilter: {
           Kontoauszuege: panel.querySelector('#dkbdl-cat-Kontoauszuege').checked,
           Kreditkartenabrechnungen: panel.querySelector('#dkbdl-cat-Kreditkartenabrechnungen')
