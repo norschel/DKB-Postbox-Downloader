@@ -26,23 +26,28 @@ Direktlink: <https://raw.githubusercontent.com/norschel/DKB-Postbox-Downloader/m
    - **Entwicklermodus aktivieren** unter `chrome://extensions` bzw. `edge://extensions` (Schalter „Entwicklermodus" / „Developer mode" oben rechts).
    - **„Allow User Scripts" / „Benutzerskripte zulassen"** für die Tampermonkey-Erweiterung aktivieren: auf der Seite `chrome://extensions` bzw. `edge://extensions` bei Tampermonkey auf „Details" klicken und die Option „Allow User Scripts" einschalten.
    - Anschließend Browser-Tab neu laden.
-3. Öffne das Tampermonkey-Dashboard und lege ein neues Script an.
-4. Kopiere den Inhalt von [`dkb_postbox_downloader.user.js`](dkb_postbox_downloader.user.js) in den Editor und speichere.
-5. Auf [banking.dkb.de](https://banking.dkb.de) prüfen: Klick auf das Tampermonkey-Symbol in der Toolbar muss das Script unter „Auf dieser Seite ausgeführt" anzeigen. Falls nicht, fehlt meist eine der Einstellungen aus Schritt 2.
+3. **Hinweis für Firefox:** In Firefox sind die obigen Manifest-V3-Schalter nicht erforderlich. Tampermonkey funktioniert dort out-of-the-box, sobald die Erweiterung installiert ist. Einzige Empfehlung: in den Tampermonkey-Einstellungen unter „Sicherheit" den Modus auf „Fragen" oder „Erlauben" für externe `@require`-Skripte (JSZip) lassen – sonst kann der ZIP-Export nicht geladen werden.
+4. Öffne das Tampermonkey-Dashboard und lege ein neues Script an.
+5. Kopiere den Inhalt von [`dkb_postbox_downloader.user.js`](dkb_postbox_downloader.user.js) in den Editor und speichere.
+6. Auf [banking.dkb.de](https://banking.dkb.de) prüfen: Klick auf das Tampermonkey-Symbol in der Toolbar muss das Script unter „Auf dieser Seite ausgeführt" anzeigen. Falls nicht, fehlt meist eine der Einstellungen aus Schritt 2.
 
 ### Verwendung
 
 1. Melde dich unter [banking.dkb.de](https://banking.dkb.de) an.
-2. Klicke auf den Button **📥 DKB Download** unten rechts im Browser.
+2. Klicke auf den Button **📥 DKB Download** oben rechts im Browser.
 3. Konfiguriere die gewünschten Optionen im Panel:
    - **Quellen** – wähle einzelne Quellen oder alle auf einmal.
    - **Zeitraum** – optional Start- und/oder Enddatum setzen, um nur Dokumente aus einem bestimmten Zeitraum herunterzuladen.
-   - Beispiel:
-     
-     <img width="250" height="374" alt="image" src="https://github.com/user-attachments/assets/e3e0f570-d53c-4745-9273-c62ba2aa1944" />
-
+   - **Kategorien** – filtere nach Dokumentart (Kontoauszüge, Kreditkartenabrechnungen, Wertpapierdokumente, Sonstige).
+   - **Optionen** –
+     - *Nur neue Dokumente seit letztem Lauf*: überspringt alle Dokumente, deren ID bereits in einem früheren erfolgreichen Lauf gespeichert wurde. Der Verlauf wird lokal über `GM_setValue` (bzw. `localStorage` als Fallback) persistiert; er kann jederzeit über den Link „Verlauf zurücksetzen" gelöscht werden.
+     - *Trockenlauf (Dry Run)*: listet im Log auf, was heruntergeladen würde, ohne tatsächlich Dateien zu speichern oder den Verlauf zu verändern.
+     - *Als ZIP herunterladen*: bündelt alle Dokumente eines Laufs in einer einzigen ZIP-Datei (`dkb-postbox_<Zeitstempel>.zip`). Praktisch, um die Browser-Rückfrage „mehrere Dateien zulassen" zu vermeiden. **Hinweis:** Der ZIP-Export ist derzeit experimentell und im Userscript per Feature-Flag (`FEATURE_ZIP_ENABLED`) deaktiviert; die Option erscheint daher nicht im Panel. Zum Aktivieren das Flag im Script auf `true` setzen.
+   - **Einstellungen** – Sprache (Deutsch/English), Design (Hell/Dunkel/Automatisch nach Systempräferenz), Log-Level (`debug`/`info`/`warn`/`error`/`none`).
 4. Klicke auf **▶ Download starten**.
-5. Dokumente werden im Standard-Download-Ordner gespeichert. Im Panel wird der Fortschritt angezeigt.
+5. Während des Laufs zeigt das Panel eine **Fortschrittsanzeige** (Balken + Zähler ✓/✗/⏭) sowie das Live-Log an. Über **⏸ Pause / ▶ Fortsetzen** lässt sich der Lauf pausieren, über **✕ Abbrechen** komplett beenden.
+6. Am Ende erscheint eine **Toast-/Benachrichtigung** mit der Zusammenfassung; falls Tampermonkey eine Systembenachrichtigung zulässt, wird zusätzlich `GM_notification` verwendet.
+7. Dokumente werden im Standard-Download-Ordner gespeichert (bzw. als einzelne ZIP, je nach Option).
 
 > **Hinweis:** Manche Browser fragen ab dem zweiten automatischen Download nach einer Erlaubnis für „mehrere Dateien herunterladen". Diese Anfrage muss einmalig bestätigt werden.
 
@@ -118,3 +123,26 @@ Die **Kategorie** richtet sich nach dem Dokumenttyp (`documentType`) aus der DKB
 ## Lizenz
 
 [MIT](LICENSE)
+
+## Datenschutz & Sicherheit
+
+Das Userscript läuft ausschließlich **lokal im Browser** des angemeldeten Nutzers und kommuniziert nur mit zwei Hosts:
+
+- **`banking.dkb.de`** – ausschließlich für die in der Tabelle „Downloadquellen" dokumentierten API-Aufrufe sowie zum Herunterladen der Dokument-PDFs. Es werden ausnahmslos dieselben Endpunkte angesprochen, die auch das DKB-Webfrontend nutzt; die bestehende Browser-Session (Cookies) wird über `credentials: 'include'` mitgesendet, das Script speichert oder überträgt keine Zugangsdaten.
+- **`cdnjs.cloudflare.com`** – einmaliger Abruf der JSZip-Bibliothek beim **Installieren bzw. Aktualisieren** des Scripts (über die Tampermonkey-Direktive `@require`). Zur Laufzeit auf `banking.dkb.de` wird Cloudflare nicht kontaktiert; Tampermonkey injiziert die zwischengespeicherte JSZip-Kopie lokal.
+
+Es findet **keine Übertragung von Banking-Daten an Dritte** statt, kein Telemetrie- oder Analytics-Code ist enthalten, und es werden keine externen Schriftarten oder Icons nachgeladen. Persistente lokale Daten (zuletzt gewählte Optionen, IDs bereits heruntergeladener Dokumente, Sprach-/Design-Einstellung) werden über `GM_setValue` (bzw. `localStorage` als Fallback) **nur im Browser-Profil** des Nutzers gespeichert und können über den Link „Verlauf zurücksetzen" im Panel jederzeit gelöscht werden.
+
+Da das Script auf einer Banking-Seite läuft, gilt: bitte ausschließlich aus diesem Repository (bzw. über die `@updateURL`) installieren und vor jedem Update den Diff in den GitHub-Commits prüfen, falls möglich. Sicherheitsmeldungen bitte über die [Issues](https://github.com/norschel/DKB-Postbox-Downloader/issues) bzw. eine private GitHub Security Advisory einreichen.
+
+## Entwicklung
+
+Für lokale Linter-/Formatter-Läufe steht eine optionale Node-Konfiguration bereit (nur für Beitragende, **nicht zur Laufzeit erforderlich**):
+
+```bash
+npm install
+npm run lint
+npm run format:check
+```
+
+Es kommen ESLint (`eslint:recommended`) und Prettier mit den im Repository hinterlegten Konfigurationsdateien zum Einsatz. Es gibt keinen Build-Schritt – das Userscript wird so, wie es im Repository liegt, von Tampermonkey ausgeführt.
