@@ -2,6 +2,9 @@
 
 Lädt alle Dokumente aus dem DKB-Online-Banking (Postfach, Archiv und Legacy-Archiv) automatisch herunter. Verfügbar als **Tampermonkey-Script** (empfohlen) und als **DevTools-Snippet**.
 
+<img width="412" height="731" alt="image" src="https://github.com/user-attachments/assets/823d6606-b85d-4779-8f87-d23b58bc8c8a" />
+
+
 ## Tampermonkey-Script (empfohlen)
 
 ### Schnellinstallation (ein Klick)
