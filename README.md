@@ -85,10 +85,22 @@ const CONFIG = {
   includeLegacyDocuments: true,
   /** Legacy-Ordnerarchiv über /folders (älteres „Archiv im Archiv"). */
   includeLegacyFolders:   true,
+  /** Bereits in früheren Läufen heruntergeladene Dokumente überspringen. */
+  onlyNew:                false,
+  /** Nichts herunterladen, nur alle aktuellen Dokumente als heruntergeladen merken. */
+  recordOnly:             false,
 };
 ```
 
-Setze einzelne Felder auf `false`, um die jeweilige Quelle zu überspringen.
+Setze einzelne `include…`-Felder auf `false`, um die jeweilige Quelle zu überspringen.
+
+#### Nur neue Dokumente
+
+Das Snippet merkt sich die IDs aller heruntergeladenen Dokumente im `localStorage` des Browsers auf `banking.dkb.de` (Schlüssel `dkbdl.v1.downloadedIds`, gleiches Format wie der `localStorage`-Fallback des Userscripts). Mit `onlyNew: true` werden diese Dokumente bei späteren Läufen übersprungen; die Konsole meldet am Ende, wie viele übersprungen wurden.
+
+Wurden die Dokumente schon vorher heruntergeladen (z. B. mit einer älteren Version des Snippets), kann der Verlauf einmalig mit `recordOnly: true` gefüllt werden: Das Snippet lädt dann nichts herunter, sondern merkt sich nur alle aktuell vorhandenen Dokumente. Danach `recordOnly` wieder auf `false` setzen. Achtung: Dokumente, die seit dem letzten Download neu eingegangen sind, gelten danach ebenfalls als heruntergeladen.
+
+Der Verlauf gilt nur für das jeweilige Browser-Profil. Löschen der Website-Daten von `banking.dkb.de` setzt ihn zurück; alternativ in der Konsole: `localStorage.removeItem('dkbdl.v1.downloadedIds')`.
 
 ## Downloadquellen
 
@@ -134,7 +146,7 @@ Das Userscript läuft ausschließlich **lokal im Browser** des angemeldeten Nutz
 - **`banking.dkb.de`** – ausschließlich für die in der Tabelle „Downloadquellen" dokumentierten API-Aufrufe sowie zum Herunterladen der Dokument-PDFs. Es werden ausnahmslos dieselben Endpunkte angesprochen, die auch das DKB-Webfrontend nutzt; die bestehende Browser-Session (Cookies) wird über `credentials: 'include'` mitgesendet, das Script speichert oder überträgt keine Zugangsdaten.
 - **`cdnjs.cloudflare.com`** – einmaliger Abruf der JSZip-Bibliothek beim **Installieren bzw. Aktualisieren** des Scripts (über die Tampermonkey-Direktive `@require`). Zur Laufzeit auf `banking.dkb.de` wird Cloudflare nicht kontaktiert; Tampermonkey injiziert die zwischengespeicherte JSZip-Kopie lokal.
 
-Es findet **keine Übertragung von Banking-Daten an Dritte** statt, kein Telemetrie- oder Analytics-Code ist enthalten, und es werden keine externen Schriftarten oder Icons nachgeladen. Persistente lokale Daten (zuletzt gewählte Optionen, IDs bereits heruntergeladener Dokumente, Sprach-/Design-Einstellung) werden über `GM_setValue` (bzw. `localStorage` als Fallback) **nur im Browser-Profil** des Nutzers gespeichert und können über den Link „Verlauf zurücksetzen" im Panel jederzeit gelöscht werden.
+Es findet **keine Übertragung von Banking-Daten an Dritte** statt, kein Telemetrie- oder Analytics-Code ist enthalten, und es werden keine externen Schriftarten oder Icons nachgeladen. Persistente lokale Daten (zuletzt gewählte Optionen, IDs bereits heruntergeladener Dokumente, Sprach-/Design-Einstellung) werden über `GM_setValue` (bzw. `localStorage` als Fallback) **nur im Browser-Profil** des Nutzers gespeichert und können über den Link „Verlauf zurücksetzen" im Panel jederzeit gelöscht werden. Das DevTools-Snippet speichert ausschließlich die IDs heruntergeladener Dokumente im `localStorage` (siehe [Nur neue Dokumente](#nur-neue-dokumente)); es stellt dafür keine zusätzlichen Netzwerkanfragen.
 
 Da das Script auf einer Banking-Seite läuft, gilt: bitte ausschließlich aus diesem Repository (bzw. über die `@updateURL`) installieren und vor jedem Update den Diff in den GitHub-Commits prüfen, falls möglich. Sicherheitsmeldungen bitte über die [Issues](https://github.com/norschel/DKB-Postbox-Downloader/issues) bzw. eine private GitHub Security Advisory einreichen.
 

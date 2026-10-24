@@ -34,6 +34,11 @@
  * Filenames follow the pattern:
  *   <prefix>_<date>_<filename>
  * Legacy folder files use: Legacy_<FolderName>_<date>_<filename>
+ *
+ * Optional: set CONFIG.onlyNew = true to skip documents downloaded in an earlier
+ * run. The IDs of downloaded documents are remembered in this browser's
+ * localStorage (key "dkbdl.v1.downloadedIds", same format as the userscript's
+ * localStorage fallback).
  */
 (async function dkbDownloadAll() {
   'use strict';
@@ -52,7 +57,59 @@
     includeLegacyDocuments: true,
     /** Legacy folder archive via /folders (older "Archiv im Archiv"). */
     includeLegacyFolders:   true,
+    /** Skip documents that were already downloaded in an earlier run (see header). */
+    onlyNew:                false,
+    /**
+     * Download nothing; only remember all current documents as downloaded.
+     * One-time setup if the documents were already downloaded before onlyNew existed.
+     */
+    recordOnly:             false,
   };
+
+  // ---------------------------------------------------------------------------
+  // History of downloaded document IDs (localStorage on banking.dkb.de)
+  // ---------------------------------------------------------------------------
+  const HISTORY_KEY = 'dkbdl.v1.downloadedIds';
+  const HISTORY_MAX = 20000;
+
+  function loadHistory() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch (err) {
+      console.warn('[DKB] Could not read download history:', err);
+      return new Set();
+    }
+  }
+
+  const persistedIds = loadHistory();
+  let countSkipped = 0;
+
+  /** Remember a document as downloaded. Saved immediately so an aborted run keeps its progress. */
+  function remember(id) {
+    persistedIds.add(id);
+    try {
+      let arr = [...persistedIds];
+      if (arr.length > HISTORY_MAX) arr = arr.slice(arr.length - HISTORY_MAX);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+    } catch (err) {
+      console.warn('[DKB] Could not save download history:', err);
+    }
+  }
+
+  /** True if the document must not be downloaded (record-only mode, or already downloaded). */
+  function skipByHistory(id) {
+    if (CONFIG.recordOnly) {
+      remember(id);
+      countSkipped++;
+      return true;
+    }
+    if (CONFIG.onlyNew && persistedIds.has(id)) {
+      countSkipped++;
+      return true;
+    }
+    return false;
+  }
 
   /** Maps documentType values to human-readable folder/prefix names. */
   const DOCTYPE_MAPPING = {
@@ -356,6 +413,7 @@
 
   console.log('[DKB] Starting document downloader …');
   console.log('[DKB] Config:', JSON.stringify(CONFIG));
+  console.log(`[DKB] Download history: ${persistedIds.size} document(s) from earlier runs.`);
 
   // Fetch inbox documents.
   let inboxMessages = [], inboxDocs = [];
@@ -410,6 +468,7 @@
   // ------------------------------------------------------------------
   for (let i = 0; i < allDocuments.length; i++) {
     const { doc, fromArchive } = allDocuments[i];
+    if (skipByHistory(doc.id)) continue;
     const docAttrs = doc.attributes || {};
     const msgAttrs = msgMap[doc.id] || {};
     const metadata = docAttrs.metadata || {};
@@ -444,6 +503,7 @@
       } else {
         const blob = await resp.blob();
         triggerDownload(blob, fullName);
+        remember(doc.id);
         countOk++;
         // Brief pause so the browser can queue each download before the next.
         await sleep(600);
@@ -473,6 +533,7 @@
         console.log(`[DKB] [legacy-doc ${i + 1}/${legacyDocs.length}] Already downloaded ${doc.id} – skipping.`);
         continue;
       }
+      if (skipByHistory(doc.id)) continue;
 
       let fname = getValidFilename(docAttrs.fileName || doc.id);
       if (docAttrs.contentType === 'application/pdf' && !fname.toLowerCase().endsWith('.pdf')) {
@@ -488,6 +549,7 @@
         if (blob) {
           triggerDownload(blob, fullName);
           downloadedIds.add(doc.id);
+          remember(doc.id);
           countOk++;
           await sleep(600);
         } else {
@@ -515,6 +577,7 @@
         console.log(`[DKB] [legacy-folder ${i + 1}/${legacyFiles.length}] Already downloaded ${file.id} – skipping.`);
         continue;
       }
+      if (skipByHistory(file.id)) continue;
 
       // Build filename: prefer subject over fileName when fileName is generic
       // (short, no year, or matches known generic names like "SBPK.pdf").
@@ -541,6 +604,7 @@
         if (blob) {
           triggerDownload(blob, fullName);
           downloadedIds.add(file.id);
+          remember(file.id);
           countOk++;
           await sleep(600);
         } else {
@@ -553,5 +617,9 @@
     }
   }
 
-  console.log(`[DKB] Finished. ✓ ${countOk} downloaded, ✗ ${countFailed} failed.`);
+  if (CONFIG.recordOnly) {
+    console.log(`[DKB] Finished. ${countSkipped} document(s) remembered as downloaded, nothing downloaded.`);
+  } else {
+    console.log(`[DKB] Finished. ✓ ${countOk} downloaded, ⏭ ${countSkipped} skipped (already downloaded), ✗ ${countFailed} failed.`);
+  }
 })();
