@@ -85,23 +85,44 @@
   const persistedIds = loadHistory();
   let countSkipped = 0;
 
-  /** Remember a document as downloaded. Saved immediately so an aborted run keeps its progress. */
-  function remember(id) {
-    persistedIds.add(id);
+  const pendingIds = new Set();
+  const FLUSH_BATCH = 500;
+
+  /** Merge pending IDs into the latest stored history under a cross-tab lock. */
+  async function flushHistory() {
+    if (!pendingIds.size) return;
     try {
-      let arr = [...persistedIds];
-      if (arr.length > HISTORY_MAX) arr = arr.slice(arr.length - HISTORY_MAX);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+      await navigator.locks.request(HISTORY_KEY, () => {
+        const idsToSave = [...pendingIds];
+        const merged = loadHistory();
+        for (const id of idsToSave) {
+          merged.delete(id);
+          merged.add(id);
+        }
+        let arr = [...merged];
+        if (arr.length > HISTORY_MAX) arr = arr.slice(arr.length - HISTORY_MAX);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+        for (const id of idsToSave) pendingIds.delete(id);
+      });
     } catch (err) {
       console.warn('[DKB] Could not save download history:', err);
     }
   }
 
+  /** Remember a document as downloaded. Saved immediately by default so an aborted run keeps its progress; record-only mode batches. */
+  async function remember(id, batch = false) {
+    persistedIds.add(id);
+    pendingIds.add(id);
+    if (!batch || pendingIds.size >= FLUSH_BATCH) await flushHistory();
+  }
+
   /** True if the document must not be downloaded (record-only mode, or already downloaded). */
-  function skipByHistory(id) {
+  async function skipByHistory(id) {
     if (CONFIG.recordOnly) {
-      remember(id);
+      const flushing = pendingIds.size + 1 >= FLUSH_BATCH;
+      await remember(id, true);
       countSkipped++;
+      if (flushing) await sleep(0); // let the page breathe between batches
       return true;
     }
     if (CONFIG.onlyNew && persistedIds.has(id)) {
@@ -468,7 +489,7 @@
   // ------------------------------------------------------------------
   for (let i = 0; i < allDocuments.length; i++) {
     const { doc, fromArchive } = allDocuments[i];
-    if (skipByHistory(doc.id)) continue;
+    if (await skipByHistory(doc.id)) continue;
     const docAttrs = doc.attributes || {};
     const msgAttrs = msgMap[doc.id] || {};
     const metadata = docAttrs.metadata || {};
@@ -503,7 +524,7 @@
       } else {
         const blob = await resp.blob();
         triggerDownload(blob, fullName);
-        remember(doc.id);
+        await remember(doc.id);
         countOk++;
         // Brief pause so the browser can queue each download before the next.
         await sleep(600);
@@ -522,7 +543,12 @@
 
   if (CONFIG.includeLegacyDocuments) {
     console.log('[DKB] Fetching legacy-documents list …');
-    const legacyDocs = await fetchLegacyDocumentList();
+    let legacyDocs;
+    try {
+      legacyDocs = await fetchLegacyDocumentList();
+    } finally {
+      await flushHistory();
+    }
     console.log(`[DKB] Legacy documents to download: ${legacyDocs.length}`);
 
     for (let i = 0; i < legacyDocs.length; i++) {
@@ -533,7 +559,7 @@
         console.log(`[DKB] [legacy-doc ${i + 1}/${legacyDocs.length}] Already downloaded ${doc.id} – skipping.`);
         continue;
       }
-      if (skipByHistory(doc.id)) continue;
+      if (await skipByHistory(doc.id)) continue;
 
       let fname = getValidFilename(docAttrs.fileName || doc.id);
       if (docAttrs.contentType === 'application/pdf' && !fname.toLowerCase().endsWith('.pdf')) {
@@ -549,7 +575,7 @@
         if (blob) {
           triggerDownload(blob, fullName);
           downloadedIds.add(doc.id);
-          remember(doc.id);
+          await remember(doc.id);
           countOk++;
           await sleep(600);
         } else {
@@ -567,7 +593,12 @@
   // ------------------------------------------------------------------
   if (CONFIG.includeLegacyFolders) {
     console.log('[DKB] Fetching legacy folder archive …');
-    const legacyFiles = await fetchAllLegacyFolderFiles();
+    let legacyFiles;
+    try {
+      legacyFiles = await fetchAllLegacyFolderFiles();
+    } finally {
+      await flushHistory();
+    }
     console.log(`[DKB] Legacy folder files to download: ${legacyFiles.length}`);
 
     for (let i = 0; i < legacyFiles.length; i++) {
@@ -577,7 +608,7 @@
         console.log(`[DKB] [legacy-folder ${i + 1}/${legacyFiles.length}] Already downloaded ${file.id} – skipping.`);
         continue;
       }
-      if (skipByHistory(file.id)) continue;
+      if (await skipByHistory(file.id)) continue;
 
       // Build filename: prefer subject over fileName when fileName is generic
       // (short, no year, or matches known generic names like "SBPK.pdf").
@@ -604,7 +635,7 @@
         if (blob) {
           triggerDownload(blob, fullName);
           downloadedIds.add(file.id);
-          remember(file.id);
+          await remember(file.id);
           countOk++;
           await sleep(600);
         } else {
@@ -616,6 +647,8 @@
       }
     }
   }
+
+  await flushHistory();
 
   if (CONFIG.recordOnly) {
     console.log(`[DKB] Finished. ${countSkipped} document(s) remembered as downloaded, nothing downloaded.`);
