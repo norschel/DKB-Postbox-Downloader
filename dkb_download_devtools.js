@@ -85,23 +85,38 @@
   const persistedIds = loadHistory();
   let countSkipped = 0;
 
-  /** Remember a document as downloaded. Saved immediately so an aborted run keeps its progress. */
-  function remember(id) {
-    persistedIds.add(id);
+  const pendingIds = new Set();
+  const FLUSH_BATCH = 500;
+
+  /** Merge pending IDs into the latest stored history (so parallel tabs don't overwrite each other) and save. */
+  function flushHistory() {
+    if (!pendingIds.size) return;
     try {
-      let arr = [...persistedIds];
+      const merged = loadHistory();
+      for (const id of pendingIds) { merged.delete(id); merged.add(id); }
+      let arr = [...merged];
       if (arr.length > HISTORY_MAX) arr = arr.slice(arr.length - HISTORY_MAX);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+      pendingIds.clear();
     } catch (err) {
       console.warn('[DKB] Could not save download history:', err);
     }
   }
 
+  /** Remember a document as downloaded. Saved immediately by default so an aborted run keeps its progress; record-only mode batches. */
+  function remember(id, batch = false) {
+    persistedIds.add(id);
+    pendingIds.add(id);
+    if (!batch || pendingIds.size >= FLUSH_BATCH) flushHistory();
+  }
+
   /** True if the document must not be downloaded (record-only mode, or already downloaded). */
-  function skipByHistory(id) {
+  async function skipByHistory(id) {
     if (CONFIG.recordOnly) {
-      remember(id);
+      const flushing = pendingIds.size + 1 >= FLUSH_BATCH;
+      remember(id, true);
       countSkipped++;
+      if (flushing) await sleep(0); // let the page breathe between batches
       return true;
     }
     if (CONFIG.onlyNew && persistedIds.has(id)) {
@@ -468,7 +483,7 @@
   // ------------------------------------------------------------------
   for (let i = 0; i < allDocuments.length; i++) {
     const { doc, fromArchive } = allDocuments[i];
-    if (skipByHistory(doc.id)) continue;
+    if (await skipByHistory(doc.id)) continue;
     const docAttrs = doc.attributes || {};
     const msgAttrs = msgMap[doc.id] || {};
     const metadata = docAttrs.metadata || {};
@@ -533,7 +548,7 @@
         console.log(`[DKB] [legacy-doc ${i + 1}/${legacyDocs.length}] Already downloaded ${doc.id} – skipping.`);
         continue;
       }
-      if (skipByHistory(doc.id)) continue;
+      if (await skipByHistory(doc.id)) continue;
 
       let fname = getValidFilename(docAttrs.fileName || doc.id);
       if (docAttrs.contentType === 'application/pdf' && !fname.toLowerCase().endsWith('.pdf')) {
@@ -577,7 +592,7 @@
         console.log(`[DKB] [legacy-folder ${i + 1}/${legacyFiles.length}] Already downloaded ${file.id} – skipping.`);
         continue;
       }
-      if (skipByHistory(file.id)) continue;
+      if (await skipByHistory(file.id)) continue;
 
       // Build filename: prefer subject over fileName when fileName is generic
       // (short, no year, or matches known generic names like "SBPK.pdf").
@@ -617,6 +632,7 @@
     }
   }
 
+  flushHistory();
   if (CONFIG.recordOnly) {
     console.log(`[DKB] Finished. ${countSkipped} document(s) remembered as downloaded, nothing downloaded.`);
   } else {
